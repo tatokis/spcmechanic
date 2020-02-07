@@ -33,6 +33,7 @@
 #include <gsFontM.h>
 #include <libpad.h>
 #include <time.h>
+#include <string.h>
 
 #define BUFFER_SIZE 1024*4
 
@@ -48,6 +49,55 @@ static void waste_time()
 #else
 #define PGM_END(x) return (x)
 #endif
+
+enum path_type
+{
+    PATH_OTHER,
+    PATH_CDROM,
+};
+
+char _path_int[512] = { 0 };
+char _cwd[256];
+enum path_type ptype;
+
+// WARNING: This is _NOT_ thread safe
+char* fixPath(const char* p)
+{
+    if(*_path_int == 0)
+    {
+        ptype = PATH_OTHER;
+        if(getcwd(_cwd, 255) == NULL)
+        {
+            _cwd[0] = '\0';
+            puts("getcwd returned NULL");
+        }
+
+        // Check if the path is cdrom
+        // We need this to swap the directory separators
+        if(!strncmp(_cwd, "cdrom", 5))
+            ptype = PATH_CDROM;
+        printf("Inside getpath %s\n", _cwd);
+    }
+
+    // _cwd is half the size of _path_int so it should be fine
+    strcpy(_path_int, _cwd);
+    size_t sz = strlen(_path_int);
+    //if(ptype == PATH_CDROM)
+    //    _path_int[sz++] = '\\';
+
+    // Append the path to the cwd
+    strncpy(_path_int + sz, p, 511 - sz);
+
+    // If we're reading from optical media, replace dir separators
+    if(ptype == PATH_CDROM)
+    {
+        char* ptr = _path_int;
+        while((ptr = strchr(ptr, '/')) != NULL)
+                *ptr++ = '\\';
+    }
+    printf("Final IO str %s\n", _path_int);
+    return _path_int;
+}
 
 // ADPCM
 typedef struct _adpsamples {
@@ -423,7 +473,7 @@ static int fillbuffer_sema;
 void audioThread()
 {
     puts("Hello from audio thread");
-    char* modfile = "assets/modules/faraway.xm";
+    char* modfile = fixPath("ASSETS/MODULES/FARAWAY.XM");
     //const char* modfile = "bzl-zeroplex.xm";
 
     puts("Past init");
@@ -509,20 +559,21 @@ static int fillbuffer(void *arg)
 static void loadSamples(adpsamples* smpls)
 {
     smpldescr smplstr[SAMPLE_CNT] =  {
-        {&smpls->fall, "assets/adpcm/fall.sad"},
-        {&smpls->throw, "assets/adpcm/throw.sad"},
-        {&smpls->enemy, "assets/adpcm/enemy.sad"},
-        {&smpls->hit, "assets/adpcm/hit.sad"},
-        {&smpls->ui, "assets/adpcm/ui.sad"},
-        {&smpls->success, "assets/adpcm/success.sad"},
+        {&smpls->fall, "ASSETS/ADPCM/FALL.SAD"},
+        {&smpls->throw, "ASSETS/ADPCM/THROW.SAD"},
+        {&smpls->enemy, "ASSETS/ADPCM/ENEMY.SAD"},
+        {&smpls->hit, "ASSETS/ADPCM/HIT.SAD"},
+        {&smpls->ui, "ASSETS/ADPCM/UI.SAD"},
+        {&smpls->success, "ASSETS/ADPCM/SUCCESS.SAD"},
     };
 
     for(int i = 0; i < SAMPLE_CNT; i++)
     {
-        FILE* fsmpl = fopen(smplstr[i].path, "rb");
+        char* fixedpath = fixPath(smplstr[i].path);
+        FILE* fsmpl = fopen(fixedpath, "rb");
         if(!fsmpl)
         {
-            printf("Error opening %s\n", smplstr[i].path);
+            printf("Error opening %s\n", fixedpath);
             continue;
         }
         fseek(fsmpl, 0, SEEK_END);
@@ -532,7 +583,7 @@ static void loadSamples(adpsamples* smpls)
         char* sbuf = malloc(smplsize);
         fread(sbuf, smplsize, 1, fsmpl);
 
-        printf("Loading %s\n", smplstr[i].path);
+        printf("Loading %s\n", fixedpath);
         audsrv_load_adpcm(smplstr[i].ptr, sbuf, smplsize);
 
         free(sbuf);
@@ -828,8 +879,8 @@ int main(int argc, char **argv)
     for(int i = 0; i < SPRITE_LEN; i++)
     {
         char path[50] = { 0 };
-        sprintf(path, "assets/gear/%u.png", (i + 43));
-        ret = gsKit_texture_png(gs, Tex + i, path);
+        sprintf(path, "ASSETS/GEAR/%u.PNG", (i + 43));
+        ret = gsKit_texture_png(gs, Tex + i, fixPath(path));
         printf("load for %s ret %d\n", path, ret);
 
         int txsize = gsKit_texture_size(Tex[i].Width, Tex[i].Height, Tex[i].PSM);
@@ -837,20 +888,20 @@ int main(int argc, char **argv)
     }
 
     GSTEXTURE t = { 0 };
-    ret = gsKit_texture_png(gs, &t, "assets/ui/cursor.png");
+    ret = gsKit_texture_png(gs, &t, fixPath("ASSETS/UI/CURSOR.PNG"));
     printf("load for cursor.png ret %d\n", ret);
     int txsize = gsKit_texture_size(t.Width, t.Height, t.PSM);
     printf("Cursor VRAM Range = 0x%X - 0x%X Size = %d\n\n", t.Vram, t.Vram + txsize - 1, txsize);
 
     
     GSTEXTURE shipt = { 0 };
-    ret = gsKit_texture_png(gs, &shipt, "assets/ship/ship.png");
+    ret = gsKit_texture_png(gs, &shipt, fixPath("ASSETS/SHIP/SHIP.PNG"));
     printf("load for ship.png ret %d\n", ret);
     txsize = gsKit_texture_size(shipt.Width, shipt.Height, shipt.PSM);
     printf("Ship VRAM Range = 0x%X - 0x%X Size = %d\n\n", t.Vram, t.Vram + txsize - 1, txsize);
 
     GSTEXTURE restexture = { 0 };
-    ret = gsKit_texture_png(gs, &restexture, "assets/resistor/resistor.png");
+    ret = gsKit_texture_png(gs, &restexture, fixPath("ASSETS/RESISTOR/RESISTOR.PNG"));
     printf("load for resistor.png ret %d\n", ret);
     txsize = gsKit_texture_size(restexture.Width, restexture.Height, restexture.PSM);
     printf("resistor VRAM Range = 0x%X - 0x%X Size = %d\n\n", restexture.Vram, restexture.Vram + txsize - 1, txsize);
@@ -872,10 +923,10 @@ int main(int argc, char **argv)
     ret = SifLoadModule("rom0:LIBSD", 0, NULL);
     printf("libsd loadmodule %d\n", ret);
     
-    /*ret = SifLoadModule("host:audsrv.irx", 0, NULL);
-    printf("audsrv loadmodule %d\n", ret);*/
+    ret = SifLoadModule(fixPath("AUDSRV.IRX"), 0, NULL);
+    printf("audsrv loadmodule %d\n", ret);
     // This is one way of getting it to work without ps2link
-    FILE* audsrv = fopen("audsrv.irx", "rb");
+    /*FILE* audsrv = fopen("AUDSRV.IRX", "rb");
     
     fseek(audsrv, 0, SEEK_END);
     u32 srvsize = ftell(audsrv);
@@ -891,7 +942,7 @@ int main(int argc, char **argv)
     
     free(data);
     
-    printf("audsrv loadmodule %d %d\n", ret, mod_res);
+    printf("audsrv loadmodule %d %d\n", ret, mod_res);*/
 
     ret = audsrv_init();
     if (ret != 0)
