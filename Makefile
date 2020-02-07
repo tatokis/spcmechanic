@@ -16,26 +16,22 @@ EE_OBJS = spcmechanic.o pad.o
 EE_LIBS_EXTRA = -lpad -laudsrv -L../libxmp/libxmp-lite-4.5.0/lib  -lxmp-lite
 EE_CFLAGS = -std=gnu99 -I../libxmp/libxmp-lite-4.5.0/include/libxmp-lite
 
-all: $(EE_BIN) pack
+all: $(EE_BIN)
 
-run: $(EE_BIN) pack
+run: $(EE_BIN)
 	ps2client reset
 	sleep 5
-	ps2client execee host:$(EE_BIN).packed.elf
-frun: $(EE_BIN) pack
-	ps2client execee host:$(EE_BIN).packed.elf
+	ps2client execee host:$(EE_BIN)
+frun: $(EE_BIN)
+	ps2client execee host:$(EE_BIN)
 
 reset:
 	ps2client reset
 
 clean:
-	rm -f $(EE_OBJS) $(EE_BIN) ${EE_BIN}.packed.elf
+	rm -f $(EE_OBJS) $(EE_BIN) ${EE_BIN}
 
 install: all
-
-pack:
-	#ps2-packer ${EE_BIN} ${EE_BIN}.packed.elf
-	[ -e ${EE_BIN}.packed.elf ] || ln -s ${EE_BIN} ${EE_BIN}.packed.elf
 
 include Makefile.pref
 include Makefile.global
