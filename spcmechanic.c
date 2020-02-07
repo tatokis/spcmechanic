@@ -95,7 +95,6 @@ char* fixPath(const char* p)
         while((ptr = strchr(ptr, '/')) != NULL)
                 *ptr++ = '\\';
     }
-    printf("Final IO str %s\n", _path_int);
     return _path_int;
 }
 
@@ -857,6 +856,11 @@ int main(int argc, char **argv)
     gs->PSMZ = GS_PSMZ_16S;
     gs->ZBuffering = GS_SETTING_ON;
     gs->DoubleBuffering = GS_SETTING_ON;
+
+    // Force PAL for now
+    gs->Mode = GS_MODE_PAL;
+    gs->Width = 640;
+    gs->Height = 512;
 
     gsKit_init_screen(gs);
     gsKit_mode_switch(gs, GS_PERSISTENT);
