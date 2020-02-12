@@ -325,7 +325,7 @@ static inline float resistorValueSuffix(resistor* r)
 void generateResistors(GSGLOBAL* g, resistor* r, GSTEXTURE* t, unsigned int* ticks_until_game_over)
 {
     int resistorcount = rand() % MAX_RESISTORS;
-    *ticks_until_game_over = 20 * (resistorcount + 1);
+    *ticks_until_game_over = 25 * (resistorcount + 1);
     for(int i = 0; i < resistorcount + 1; i++)
     {
         int seprand = rand();
