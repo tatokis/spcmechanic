@@ -124,7 +124,7 @@ typedef struct _gsTextures {
 #define MAX_BULLETS 5
 #define MAX_ENEMIES 8
 #define MAX_RESISTORS 4
-#define MAX_RES_SLN 20
+#define MAX_RES_SLN 24
 //#define SPRITE_LEN 2
 #define SPRITE_LEN 35
 
@@ -256,6 +256,10 @@ res_solution sln[MAX_RES_SLN] = {
     {"750 Ohm", {BAND_VIOLET, BAND_GREEN, BAND_BROWN}},
     {"470 Ohm", {BAND_YELLOW, BAND_VIOLET, BAND_BROWN}},
     {"4.7 KOhm", {BAND_YELLOW, BAND_VIOLET, BAND_RED}},
+    {"1 Ohm", {BAND_BROWN, BAND_BLACK, BAND_GOLD}},
+    {"4.7 Ohm", {BAND_YELLOW, BAND_VIOLET, BAND_GOLD}},
+    {"1.2 Ohm", {BAND_BROWN, BAND_RED, BAND_GOLD}},
+    {"56 Ohm", {BAND_GREEN, BAND_BLUE, BAND_BLACK}},
 };
 
 static inline unsigned int resistorToOhmsNoMul(resistor* r)
