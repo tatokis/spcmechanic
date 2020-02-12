@@ -1009,7 +1009,7 @@ int main(int argc, char **argv)
 
     unsigned char count = 0;
     unsigned int next_enemy_in = 0;
-    float prev_x = 0.f;
+    float prev_x = -1.f;
 
     int thread = GetThreadId();
     
@@ -1019,10 +1019,10 @@ int main(int argc, char **argv)
     
     enemy enemies[MAX_ENEMIES];
     memset(enemies, 0, sizeof(enemies));
-    
+
     player plr = {
         .x = 0.f,
-        .y = 0.f,
+        .y = gs->Height / 2,
         .w = t.Width,
         .h = t.Height,
         .score = 0,
@@ -1157,7 +1157,15 @@ int main(int argc, char **argv)
             gsKit_set_test(gs, GS_ATEST_ON);
             renderEnemies(gs, Tex, &c, enemies, &count, &plr, &samples, &allow_user_control);
             if(plr.score < -4)
+            {
                 scn = SCENE_GAME_OVER;
+                // Reset things for next run
+                memset(enemies, 0, sizeof(enemies));
+                memset(bullets, 0, sizeof(bullet) * MAX_BULLETS);
+                plr.x = 0.f;
+                plr.y = gs->Height / 2;
+                plr.score = 0;
+            }
 
         } 
         else if (scn == SCENE_PRE_REPAIR)
@@ -1179,7 +1187,6 @@ int main(int argc, char **argv)
             gsKit_set_test(gs, GS_ATEST_ON);
             gsKit_set_primalpha(gs, GS_BLEND_BACK2FRONT, 0);
             gsKit_fontm_print_scaled(gs, gsFont, 130.f, 15.f, 1, 0.8f, c.whiter, "       GAME OVER!\n\nPress start to try again\nor Triangle to Quit\n");
-            plr.score = 0;
         }
         else // SCENE_REPAIR
         {
@@ -1303,6 +1310,11 @@ int main(int argc, char **argv)
             {
                 scn = SCENE_GAME_OVER;
                 selected_resistor = NULL;
+                // Clear resistors and player data
+                memset(resistors, 0, sizeof(resistor) * MAX_RESISTORS);
+                plr.x = 0.f;
+                plr.y = gs->Height / 2;
+                plr.score = 0;
             }
 
         }
