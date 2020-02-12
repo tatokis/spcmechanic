@@ -36,6 +36,7 @@
 #include <string.h>
 
 #define BUFFER_SIZE 1024*4
+#define GAME_VERSION "0.2"
 
 //#define NORETURN
 
@@ -839,7 +840,8 @@ static void showLoadingScreen(GSGLOBAL* gs, GSFONTM* gsFont, gsColours* c)
     for(int i = 0; i < 2; i++)
     {
         gsKit_clear(gs, c->black);
-        gsKit_fontm_print(gs, gsFont, centrex - 10*12, centrey - 12, 0, c->purple, "Loading...");
+        gsKit_fontm_print(gs, gsFont, centrex - 10*8, centrey - 12, 0, c->purple, "Loading...");
+        gsKit_fontm_print_scaled(gs, gsFont, centrex - 10*6, gs->Height - 20, 0, 0.5f, c->purple, "Version: " GAME_VERSION);
         gsKit_queue_exec(gs);
         gsKit_queue_reset(gs->Per_Queue);
         gsKit_sync_flip(gs);
