@@ -161,7 +161,7 @@ void emitBullet(bullet* b, player* p, adpsamples* smpls)
 }
 enum resistorband
 {
-    BAND_BLACK,
+    BAND_BLACK = 0,
     BAND_BROWN,
     BAND_RED,
     BAND_ORANGE,
@@ -209,13 +209,6 @@ const char* bandToString(enum resistorband b)
     }
 }
 
-float resistorMultipliers[12] =
-{
-    1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000, 0.1, 0.01,
-    // Decimals aren't supported
-    // This needs to be rewritten to use something that can handle big decimal numbers
-};
-
 typedef struct _res_solution
 {
     const char* reqval;
@@ -225,7 +218,7 @@ typedef struct _res_solution
 typedef struct _resistor
 {
     int active;
-    u64 value;
+    //u64 value;
     const char* suffix;
     enum resistorband bands[3];
     /*enum _orientation
@@ -237,6 +230,7 @@ typedef struct _resistor
     int w, h;
     unsigned char current_band;
     res_solution* solution;
+    unsigned char zeroes;
     
 } resistor;
 
@@ -264,26 +258,64 @@ res_solution sln[MAX_RES_SLN] = {
     {"4.7 KOhm", {BAND_YELLOW, BAND_VIOLET, BAND_RED}},
 };
 
-u64 resistorToOhms(resistor* r)
+static inline unsigned int resistorToOhmsNoMul(resistor* r)
 {
-    return ((r->bands[0] * 10) + r->bands[1]) * resistorMultipliers[r->bands[2]];
+    return ((r->bands[0] * 10) + r->bands[1]);
 }
 
-u64 resistorSuffixString(resistor* r)
+static inline float resistorValueSuffix(resistor* r)
 {
-    // There's not enough time to solve this properly, sorry
-    if(r->value >= 1000000)
+    unsigned int rval = resistorToOhmsNoMul(r);
+    switch(r->bands[2])
     {
-        r->suffix = "MOhm";
-        return r->value / 1000000;
+        case BAND_WHITE:
+            r->zeroes = 9;
+            r->suffix = "GOhm";
+            return rval;
+        case BAND_GREY:
+            r->zeroes = 8;
+            r->suffix = "GOhm";
+            return rval / 10.f;
+        case BAND_VIOLET:
+            r->zeroes = 7;
+            r->suffix = "MOhm";
+            return rval * 10;
+        case BAND_BLUE:
+            r->zeroes = 6;
+            r->suffix = "MOhm";
+            return rval;
+        case BAND_GREEN:
+            r->zeroes = 5;
+            r->suffix = "MOhm";
+            return rval / 10.f;
+        case BAND_YELLOW:
+            r->zeroes = 4;
+            r->suffix = "KOhm";
+            return rval * 10;
+        case BAND_ORANGE:
+            r->zeroes = 3;
+            r->suffix = "KOhm";
+            return rval;
+        case BAND_RED:
+            r->zeroes = 2;
+            r->suffix = "KOhm";
+            return rval / 10.f;
+        case BAND_BROWN:
+            r->zeroes = 1;
+            r->suffix = "Ohm";
+            return rval * 10;
+        case BAND_GOLD:
+            r->suffix = "Ohm";
+            return rval / 10.f;
+        case BAND_SILVER:
+            r->suffix = "Ohm";
+            return rval / 100.f;
+        case BAND_BLACK:
+        default:
+            r->zeroes = 0;
+            r->suffix = "Ohm";
+            return rval;
     }
-    if(r->value >= 1000)
-    {
-        r->suffix = "KOhm";
-        return r->value / 1000;
-    }
-    r->suffix = "Ohm";
-    return r->value;
 }
 
 void generateResistors(GSGLOBAL* g, resistor* r, GSTEXTURE* t, unsigned int* ticks_until_game_over)
@@ -301,10 +333,13 @@ void generateResistors(GSGLOBAL* g, resistor* r, GSTEXTURE* t, unsigned int* tic
 
         (r + i)->w = t->Width;
         (r + i)->h = t->Height;
-        resistorSuffixString(r + i);
-        
+        (r + i)->suffix = "Ohm";
+
         // Pick a random solution
         (r + i)->solution = sln + (rand() % MAX_RES_SLN);
+
+        // First band can't be 0
+        (r + i)->bands[0] = BAND_BROWN;
     }
 }
 
@@ -644,16 +679,19 @@ static void readPad(GSGLOBAL* gsGlobal, player* p, adpsamples* smpls, bullet* b,
             if(new_pad & PAD_RIGHT && (*selected_resistor)->current_band < 2)
                 (*selected_resistor)->current_band +=1;
             
-            if(new_pad & PAD_DOWN && (*selected_resistor)->bands[(*selected_resistor)->current_band] < BAND_MAX - 3) // -3 so that the last two can't be chosen
+            if(new_pad & PAD_DOWN && (*selected_resistor)->bands[(*selected_resistor)->current_band] < BAND_MAX - 1) // -3 so that the last two can't be chosen, not true anymore
             {
-                (*selected_resistor)->bands[(*selected_resistor)->current_band] += 1;
-                (*selected_resistor)->value = resistorToOhms(*selected_resistor);
+                // Don't allow bands 0 and 1 to go above BAND_WHITE
+                if(!(((*selected_resistor)->current_band == 0 || (*selected_resistor)->current_band == 1) && (*selected_resistor)->bands[(*selected_resistor)->current_band] >= BAND_WHITE))
+                    (*selected_resistor)->bands[(*selected_resistor)->current_band] += 1;
             }
 
             if(new_pad & PAD_UP && (*selected_resistor)->bands[(*selected_resistor)->current_band] > 0)
             {
-                (*selected_resistor)->bands[(*selected_resistor)->current_band] -= 1;
-                (*selected_resistor)->value = resistorToOhms(*selected_resistor);
+                // Don't allow the the first band to be black
+                // It's both not valid and will mess up our hacky value calculations
+                if(!((*selected_resistor)->current_band == 0 && (*selected_resistor)->bands[(*selected_resistor)->current_band] == BAND_BROWN))
+                    (*selected_resistor)->bands[(*selected_resistor)->current_band] -= 1;
             }
         }
         else
@@ -679,7 +717,7 @@ static void readPad(GSGLOBAL* gsGlobal, player* p, adpsamples* smpls, bullet* b,
         audsrv_set_volume(0);
     // Following ones are single shot
     if(scn == SCENE_SHMUP)
-    {        
+    {
         if(new_pad & PAD_CROSS)
             emitBullet(b, p, smpls);
     }
@@ -1203,8 +1241,33 @@ int main(int argc, char **argv)
             // Draw the current value text over the pcb
             if(selected_resistor)
             {
-                sprintf(resvalstr + 7, "%lu %s\n(%lu Ohm)\n%s %s %s", resistorSuffixString(selected_resistor), selected_resistor->suffix, selected_resistor->value,
-                bandToString(selected_resistor->bands[0]), bandToString(selected_resistor->bands[1]), bandToString(selected_resistor->bands[2]));
+                // Print everything until the value in Ohms (without printing it)
+                char* pstr = resvalstr + 7;
+                float resistorval = resistorValueSuffix(selected_resistor);
+                pstr += sprintf(pstr, "%g %s\n(", resistorval, selected_resistor->suffix);
+                // If multiplier is gold or silver, then print the value as-is
+                if(selected_resistor->bands[2] >= BAND_GOLD)
+                {
+                    pstr += sprintf(pstr, "%g", resistorval);
+                }
+                else
+                {
+                    int vlcnt = sprintf(pstr, "%u", resistorToOhmsNoMul(selected_resistor));
+                    // Place pcnt to the end of the string
+                    pstr += vlcnt;
+                    // Append the correct number of zeroes to the string
+                    // Needs to be done this way because the numbers are too big to fit/calculate reliably
+                    vlcnt = selected_resistor->zeroes;
+                    if(vlcnt > 0)
+                    {
+                        while(vlcnt--)
+                        {
+                            *pstr++ = '0';
+                        }
+                    }
+                }
+                // Continue printing the rest
+                sprintf(pstr, " Ohm)\n%s %s %s", bandToString(selected_resistor->bands[0]), bandToString(selected_resistor->bands[1]), bandToString(selected_resistor->bands[2]));
                 gsKit_fontm_print_scaled(gs, gsFont, 22.f, 15.f, 1, 0.6f, c.whiter, resvalstr);
             }
             else
