@@ -10,5 +10,5 @@ Either burn the iso to a disc or copy everything (excluding the iso) to a usb fl
 Both methods require a way of running homebrew on the console.
 
 ### On PCSX2:
-Either load up the ISO and select System->Boot ISO (fast) or Run ELF and select spcmechanic.elf
-The run ELF option may not work on PCSX2 1.4 or earlier
+Either load up the ISO and select System->Boot ISO (fast) or Run ELF and select `spcmechanic.elf`.
+The run ELF option may not work on PCSX2 1.4 or earlier, and the Boot ISO (full) option results in an error.
