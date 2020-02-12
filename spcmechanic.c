@@ -971,24 +971,6 @@ int main(int argc, char **argv)
     
     ret = SifLoadModule(fixPath("AUDSRV.IRX"), 0, NULL);
     printf("audsrv loadmodule %d\n", ret);
-    // This is one way of getting it to work without ps2link
-    /*FILE* audsrv = fopen("AUDSRV.IRX", "rb");
-    
-    fseek(audsrv, 0, SEEK_END);
-    u32 srvsize = ftell(audsrv);
-    fseek(audsrv, 0, SEEK_SET);
-    
-    void* data = malloc(srvsize);
-    fread(data, srvsize, 1, audsrv);
-    fclose(audsrv);
-    audsrv = NULL;
-    
-    int mod_res;
-    ret = SifExecModuleBuffer(data, srvsize, 0, NULL, &mod_res);
-    
-    free(data);
-    
-    printf("audsrv loadmodule %d %d\n", ret, mod_res);*/
 
     ret = audsrv_init();
     if (ret != 0)
