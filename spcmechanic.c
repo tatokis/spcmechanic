@@ -462,7 +462,10 @@ void renderEnemies(GSGLOBAL* gs, GSTEXTURE* Tex, gsColours* c, enemy* e, unsigne
                 audsrv_play_adpcm(&s->fall);
                 *allow_pad = 0;
                 (e + i)->active = 0;
-                p->score = 0;
+                // Halve the user's score
+                p->score /= 2;
+                if(p->score < 0)
+                    p->score = 0;
             }
         }
         // Move them along the path
@@ -1106,7 +1109,7 @@ int main(int argc, char **argv)
             count = 1;
 
             // Fall to the right, else to the left
-            if(plr.x > prev_x)
+            if(plr.x > prev_x || plr.x == 0.f)
                 plr.x += fall_counter/4.f + 8;
             else
             {
@@ -1293,11 +1296,20 @@ int main(int argc, char **argv)
                 // Draw timeout
                 gsKit_fontm_print_scaled(gs, gsFont, 22.f, gs->Height - 30.f, 1, 0.6f, c.whiter, ticksleftstr);
             }
-
-            // Finally, draw the cursor, only if we don't have a selected resistor
-            if(!selected_resistor)
+            
+            // Draw an arrow below the current band if a resistor is selected
+            if(selected_resistor)
+            {
+                // Tip of the triangle
+                float band_x = selected_resistor->x + 36.f + 2.f + (selected_resistor->current_band * 8.f);
+                gsKit_prim_triangle(gs, band_x, selected_resistor->y + selected_resistor->h, band_x + 6.f, selected_resistor->y + selected_resistor->h + 14.f, band_x - 6.f, selected_resistor->y + selected_resistor->h + 14.f, 1, c.shmupbg);
+            }
+            else
+            {
+                // Finally, draw the cursor, only if we don't have a selected resistor
                 gsKit_prim_sprite_texture(gs, &t, plr.x, plr.y, 0, 0,
                     plr.x + t.Width, plr.y + t.Height, t.Width, t.Height, 4, c.white);
+            }
 
             if(!(count % 64))
             {
